@@ -10,33 +10,68 @@
 
 using namespace std;
 
-pair<string, string> get_fastaset(const ifstream & input) {
+pair<string, string> * get_fastaset(ifstream & input, unsigned int & num) {
+	// Takes in open file, reads FASTA data to a pair<string, string>
+	// .first is sequence name, .second is sequence itself
 
+	string temp;
+	unsigned int pos = 0;
+	static pair<string, string> output[10];
+
+	while (getline(input, temp)) {
+		// Keeps reading file until end
+
+		if (temp[0] == '>') {
+			if (!(output[pos].second.empty())) {
+				pos++;
+			}
+			output[pos].first = temp;
+		}
+		else {
+			output[pos].second.append(temp);
+		}
+	}
+	num = ++pos;
+	return output;
+}
+
+float gc_percent(string input) {
+	// Compares # of GC nucleotides in string to total size to return %GC
+
+	unsigned int gc_num = 0;
+	for (unsigned int i = 0; i < input.size(); i++) {
+		if ((input[i] == 'G') || (input[i] == 'C')) {
+			gc_num++;
+		}
+	}
+	return (float(gc_num) / float(input.size()));
 }
 
 int main() {
 	ifstream input("dataset.txt");
 
 	if (input.is_open()) {
-
-		pair<string, string> sequences[10];
-		unsigned int sequence_pos = 0;
-		string temp_holder;
-
-		while (getline(input, temp_holder)) {
-			if (temp_holder[0] != '>') {
-				// if it doesn't start with >, then its not a name and we need to append it to the current sequence data
-				sequences[sequence_pos].second.append(temp_holder);
-			}
-			else {
-				// if it is a name after some data, then we need to make it the name of the next position and shift the position up
-				if (!(sequences[sequence_pos].second.empty())) {
-					sequence_pos++;
-				}
-				sequences[sequence_pos].first = temp_holder.substr(1, temp_holder.size() - 1);
-			}
-		}	
+		unsigned int seq_size;
+		pair<string, string> * sequences = get_fastaset(input, seq_size);
 		input.close();
+
+		int gc[10];
+		for (unsigned int i = 0; i < seq_size; i++) {
+			gc[i] = gc_percent(sequences[i].second);
+		}
+
+		unsigned int j = 0;
+		float k = 0.0;
+
+		for (unsigned int i = 0; i < seq_size; i++) {
+			if (gc[i] > k) {
+				k = gc[i];
+				j = i;
+			}
+		}
+
+		cout << sequences[j].first << "\n" << k << endl;
+
 	}
 	else {
 		cout << "nope." << endl;
